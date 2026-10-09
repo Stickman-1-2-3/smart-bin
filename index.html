@@ -79,6 +79,7 @@ input[type=text],input[type=email]{font:inherit;width:100%;padding:12px;border:1
     <p class="sub" id="pSub">Hold the item up so the camera can see it.</p>
     <div class="view"><video id="v2" playsinline muted></video><div class="ph" id="ph2">Starting camera…</div></div>
     <button id="snap" disabled>Take photo</button>
+    <label class="btn alt" id="upl" hidden>Use a photo from my device<input type="file" id="file" accept="image/*" capture="environment" hidden></label>
     <div class="thumbs" id="thumbs" hidden></div>
     <ul class="checks" id="checks" hidden></ul>
     <div class="msg" id="m2" hidden></div>
@@ -101,7 +102,6 @@ input[type=text],input[type=email]{font:inherit;width:100%;padding:12px;border:1
     <p class="sub">We email you a one-tap sign-in link. No password needed.</p>
     <input type="email" id="email" placeholder="you@example.com" aria-label="Email address" autocomplete="email">
     <button id="sendLink">Email me a sign-in link</button>
-    <button class="alt" id="google">Continue with Google</button>
     <div class="msg" id="m0" hidden></div>
   </section>
 
@@ -187,18 +187,19 @@ async function loadModel(){
   try{model=await cocoSsd.load({base:'lite_mobilenet_v2'});modelState='ready'}catch(e){modelState='failed'}}
 async function startProof(){
   if(needLogin()){show('s0');return}
-  photos=[];show('s2');$('binTag').textContent='Bin '+binId+' confirmed';
+  photos=[];show('s2');$('upl').hidden=true;$('binTag').textContent='Bin '+binId+' confirmed';
   ['thumbs','checks','verify','retake'].forEach(i=>$(i).hidden=true);$('thumbs').innerHTML='';msg('m2','');
   nextPrompt();$('snap').hidden=false;$('snap').disabled=true;$('ph2').hidden=false;
   loadModel();
   const r=await cam($('v2'));
-  if(r!==true){$('ph2').textContent='Camera unavailable. Allow camera access and reload.';return}
+  if(r!==true){$('ph2').textContent='Camera unavailable here. Use a photo from your device instead.';$('upl').hidden=false;return}
   $('ph2').hidden=true;$('snap').disabled=false}
 function nextPrompt(){const p=PROMPTS[Math.min(photos.length,1)];$('pTitle').textContent=p[0];$('pSub').textContent=p[1]}
-$('snap').onclick=()=>{
-  const c=grab($('v2'));photos.push({url:c.toDataURL('image/jpeg',.8),canvas:(()=>{const k=document.createElement('canvas');k.width=c.width;k.height=c.height;k.getContext('2d').drawImage(c,0,0);return k})()});
+$('snap').onclick=()=>addPhoto(grab($('v2')));
+function addPhoto(c){photos.push({url:c.toDataURL('image/jpeg',.8),canvas:(()=>{const k=document.createElement('canvas');k.width=c.width;k.height=c.height;k.getContext('2d').drawImage(c,0,0);return k})()});
   const th=$('thumbs');th.hidden=false;th.innerHTML=photos.map(p=>`<img src="${p.url}" alt="Your photo">`).join('');
-  if(photos.length<2){nextPrompt()}else{stopCam();$('snap').hidden=true;$('pTitle').textContent='Check your photos';$('pSub').textContent='Submit them for the litter and bin check, or start over.';$('verify').hidden=false;$('retake').hidden=false;$('v2').parentElement.hidden=true}};
+  if(photos.length<2){nextPrompt()}else{stopCam();$('snap').hidden=true;$('pTitle').textContent='Check your photos';$('pSub').textContent='Submit them for the litter and bin check, or start over.';$('verify').hidden=false;$('retake').hidden=false;$('v2').parentElement.hidden=true;$('upl').hidden=true}}
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const k=document.createElement('canvas'),sc=Math.min(1,1280/im.width);k.width=im.width*sc;k.height=im.height*sc;k.getContext('2d').drawImage(im,0,0,k.width,k.height);URL.revokeObjectURL(im.src);addPhoto(k)};im.src=URL.createObjectURL(f);e.target.value=''};
 $('retake').onclick=()=>{$('v2').parentElement.hidden=false;startProof()};
 
 $('verify').onclick=async()=>{
@@ -250,7 +251,6 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{stopCam();co
 $('sendLink').onclick=async()=>{const e=$('email').value.trim();if(!/^\S+@\S+\.\S+$/.test(e)){msg('m0','Enter a valid email address.','bad');return}
   $('sendLink').disabled=true;const r=await SB.signIn(e);$('sendLink').disabled=false;
   r.error?msg('m0',r.error,'bad'):msg('m0','Check your inbox for '+e+'. Open the link on this phone to sign in.','good')};
-$('google').onclick=async()=>{const r=await SB.signInGoogle();if(r.error)msg('m0',r.error,'bad')};
 $('signOut').onclick=async()=>{await SB.signOut();binId=null;show('s0')};
 
 /* ---------- open straight from the bin's QR link: smart-bin.html?bin=SB-001 ---------- */
