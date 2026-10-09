@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Bin QR Generator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap">
+<style>
+:root{--blue:#0b5ed7;--deep:#073b8c;--green:#16a34a;--sky:#eaf2ff;--line:#d6e2f3;--ink:#0d2340;box-sizing:border-box}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;font-family:Outfit,system-ui,sans-serif;color:var(--ink);background:#fff}
+header{background:linear-gradient(135deg,var(--deep),var(--blue) 65%,var(--green));color:#fff;padding:24px 20px}
+header h1{margin:0;font-size:1.8rem;font-weight:800}header p{margin:4px 0 0;opacity:.9}
+main{max-width:900px;margin:0 auto;padding:20px 16px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;background:var(--sky);padding:16px;border-radius:16px}
+label{display:block;font-size:.85rem;font-weight:600;margin-bottom:4px}
+input{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:10px}
+.wide{grid-column:1/-1}
+button{font:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 18px;background:var(--green);color:#fff;cursor:pointer;margin:12px 8px 0 0}
+button.alt{background:var(--blue)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:20px}
+.tag{border:3px solid var(--blue);border-radius:18px;padding:16px;text-align:center;break-inside:avoid}
+.tag h3{margin:0;background:var(--green);color:#fff;border-radius:10px;padding:6px;font-size:1.1rem}
+.tag .qr{margin:12px auto;width:200px;height:200px}
+.tag .qr img,.tag .qr canvas{width:200px;height:200px}
+.tag p{margin:0;font-weight:600;color:var(--deep)}.tag small{display:block;color:#5b6b82;margin:4px 0 8px;word-break:break-all}
+.tag button{margin:0;padding:8px 12px;font-size:.85rem}
+.note{font-size:.9rem;color:#5b6b82}
+@media print{header,.form,.note,.tag button,#actions{display:none}main{padding:0}.sheet{margin:0}}
+</style>
+</head>
+<body>
+<header><h1>Smart Bin QR Generator</h1><p>Make a printable QR tag for each bin.</p></header>
+<main>
+  <div class="form">
+    <div class="wide"><label for="base">Link to your Smart Bin page</label><input id="base" placeholder="https://username.github.io/smart-bin/index.html"></div>
+    <div><label for="prefix">Bin code prefix</label><input id="prefix" value="SB-"></div>
+    <div><label for="start">First number</label><input id="start" type="number" min="1" value="1"></div>
+    <div><label for="count">How many bins</label><input id="count" type="number" min="1" max="60" value="4"></div>
+  </div>
+  <div id="actions"><button id="gen">Generate QR codes</button><button class="alt" id="print">Print sheet</button></div>
+  <p class="note">Each code opens your Smart Bin page with the bin already identified (for example <code>index.html?bin=SB-001</code>). Print, laminate and fix one on each bin.</p>
+  <div class="sheet" id="sheet"></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+// Pre-fill with this page's own location (works on GitHub Pages), pointing at index.html.
+$('base').value=location.protocol.startsWith('http')?location.href.replace(/[^/]*([?#].*)?$/,'')+'index.html':'';
+function make(){
+  const base=$('base').value.trim(),pre=$('prefix').value.trim().toUpperCase(),st=+$('start').value||1,n=Math.min(60,+$('count').value||1);
+  const sheet=$('sheet');sheet.innerHTML='';
+  if(!/^https?:\/\//.test(base)){sheet.innerHTML='<p class="note">Enter the full link starting with https://</p>';return}
+  for(let i=0;i<n;i++){
+    const id=pre+String(st+i).padStart(3,'0'),url=base+(base.includes('?')?'&':'?')+'bin='+encodeURIComponent(id);
+    const card=document.createElement('div');card.className='tag';
+    card.innerHTML=`<h3>Smart Bin</h3><div class="qr"></div><p>${id}</p><small>Scan to recycle and earn points</small><button class="alt">Download PNG</button>`;
+    sheet.appendChild(card);
+    const box=card.querySelector('.qr');
+    new QRCode(box,{text:url,width:400,height:400,colorDark:'#073b8c',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+    card.querySelector('button').onclick=()=>{
+      const c=box.querySelector('canvas');const a=document.createElement('a');a.download=id+'.png';a.href=c.toDataURL('image/png');a.click()};
+  }
+}
+$('gen').onclick=make;
+$('print').onclick=()=>{if(!$('sheet').children.length)make();window.print()};
+</script>
+</body>
+</html>

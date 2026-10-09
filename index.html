@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Bin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap">
+<style>
+:root{--blue:#0b5ed7;--deep:#073b8c;--green:#16a34a;--mint:#e7f6ec;--sky:#eaf2ff;--white:#fff;--ink:#0d2340;--mute:#5b6b82;--line:#d6e2f3;--bad:#c2410c;box-sizing:border-box}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;font-family:Outfit,system-ui,sans-serif;background:var(--white);color:var(--ink);line-height:1.5;min-height:100vh}
+header{background:linear-gradient(135deg,var(--deep),var(--blue) 65%,var(--green));color:#fff;padding:calc(env(safe-area-inset-top,0px) + 22px) 20px 56px;text-align:center}
+header h1{margin:8px 0 4px;font-size:2.2rem;font-weight:800;letter-spacing:-.5px}
+header p{margin:0 auto;max-width:34ch;opacity:.92}
+main{max-width:520px;margin:-34px auto 0;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 32px)}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(7,59,140,.12)}
+.steps{display:flex;gap:6px;margin-bottom:16px}
+.steps div{flex:1;text-align:center;font-size:.8rem;color:var(--mute);border-bottom:4px solid var(--line);padding-bottom:6px}
+.steps .on{color:var(--blue);border-color:var(--blue);font-weight:600}
+.steps .ok{color:var(--green);border-color:var(--green);font-weight:600}
+h2{margin:0 0 4px;font-size:1.25rem}
+.sub{margin:0 0 14px;color:var(--mute);font-size:.95rem}
+.view{position:relative;background:#06224f;border-radius:14px;overflow:hidden;aspect-ratio:4/3}
+video,.view img{width:100%;height:100%;object-fit:cover;display:block}
+.frame{position:absolute;inset:18% 22%;border:3px solid #fff;border-radius:14px;box-shadow:0 0 0 999px rgba(6,34,79,.45);pointer-events:none}
+.frame.hide{display:none}
+.ph{position:absolute;inset:0;display:grid;place-items:center;color:#cfe0fb;text-align:center;padding:20px}
+button,.btn{font:inherit;font-weight:600;border:0;border-radius:12px;padding:13px 18px;cursor:pointer;background:var(--green);color:#fff;width:100%;margin-top:12px;display:block;text-align:center}
+button.alt,.btn.alt{background:var(--sky);color:var(--blue)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input[type=text],input[type=email]{font:inherit;width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;margin-top:10px}
+.msg{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--sky);color:var(--deep);font-size:.92rem}
+.msg.good{background:var(--mint);color:#0b5a2a}.msg.bad{background:#fff1e8;color:var(--bad)}
+.badge{display:inline-block;background:var(--mint);color:#0b5a2a;border-radius:99px;padding:3px 12px;font-weight:600;font-size:.88rem}
+.checks{list-style:none;padding:0;margin:12px 0 0}
+.checks li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.checks li:last-child{border:0}
+.dot{width:22px;height:22px;border-radius:50%;background:var(--line);flex:none;display:grid;place-items:center;color:#fff;font-size:.8rem}
+.pass .dot{background:var(--green)}.fail .dot{background:var(--bad)}
+.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.thumbs img{width:100%;border-radius:10px;aspect-ratio:4/3;object-fit:cover}
+.big{font-size:3.4rem;font-weight:800;color:var(--green);line-height:1;margin:6px 0}
+.stat{display:flex;justify-content:space-between;color:var(--mute);font-size:.9rem;margin-top:14px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:no-preference){.frame{animation:pulse 2s ease-in-out infinite}@keyframes pulse{50%{border-color:#7ee2a1}}}
+.tabs{display:flex;gap:6px;margin-bottom:14px}.tabs button{margin:0;padding:9px 6px;background:var(--sky);color:var(--blue);font-size:.9rem}.tabs button.cur{background:var(--blue);color:#fff}
+.lb{list-style:none;padding:0;margin:0}.lb li{display:flex;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line);align-items:center}.lb b{width:24px;color:var(--blue)}.lb span{flex:1}.lb em{font-style:normal;font-weight:600;color:var(--green)}.lb .me{background:var(--mint);border-radius:10px}
+.reward{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--sky);border-radius:14px;padding:14px}
+.bar{height:10px;background:var(--line);border-radius:9px;margin:12px 0 6px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--green)}
+</style>
+</head>
+<body>
+<header>
+  <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 18h36l-4 38H18z" fill="#fff"/><rect x="10" y="12" width="44" height="6" rx="3" fill="#bfe9cd"/><path d="M32 26l7 12h-4l3 6H26l3-6h-4z" fill="#16a34a" opacity=".0"/><path d="M26 31a6 6 0 0 1 10-3M38 40a6 6 0 0 1-10 3" stroke="#16a34a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M37 24v5h-5M27 47v-5h5" stroke="#16a34a" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h1>Smart Bin</h1>
+  <p>Scan the bin, show your litter going in, and keep the neighbourhood clean.</p>
+</header>
+<main>
+ <div class="card">
+  <nav class="tabs"><button data-go="s1" class="cur">Scan</button><button data-go="s4">Leaderboard</button><button data-go="s5">Rewards</button></nav>
+  <div class="steps" id="steps"><div class="on">Scan bin</div><div>Photo proof</div><div>Done</div></div>
+
+  <!-- Step 1 -->
+  <section id="s1">
+    <h2>Scan the bin's QR code</h2>
+    <p class="sub">Point your camera at the QR code on the bin to confirm it's a Smart Bin.</p>
+    <div class="view"><video id="v1" playsinline muted></video><div class="ph" id="ph1">Camera is off</div><div class="frame hide" id="fr1"></div></div>
+    <button id="startScan">Start camera</button>
+    <input type="text" id="manual" placeholder="Or type the bin code (e.g. SB-001)" aria-label="Bin code" autocomplete="off">
+    <button class="alt" id="manualBtn">Use this code</button>
+    <div class="msg" id="m1" hidden></div>
+  </section>
+
+  <!-- Step 2 -->
+  <section id="s2" hidden>
+    <span class="badge" id="binTag"></span>
+    <h2 style="margin-top:8px" id="pTitle">Photo 1: litter in your hand</h2>
+    <p class="sub" id="pSub">Hold the item up so the camera can see it.</p>
+    <div class="view"><video id="v2" playsinline muted></video><div class="ph" id="ph2">Starting camera…</div></div>
+    <button id="snap" disabled>Take photo</button>
+    <div class="thumbs" id="thumbs" hidden></div>
+    <ul class="checks" id="checks" hidden></ul>
+    <div class="msg" id="m2" hidden></div>
+    <button id="verify" hidden>Submit proof</button>
+    <button class="alt" id="retake" hidden>Start over</button>
+  </section>
+
+  <!-- Step 3 -->
+  <section id="s3" hidden style="text-align:center">
+    <h2>Thank you!</h2>
+    <p class="sub" id="doneSub">Your litter is verified.</p>
+    <div class="big" id="pts">0</div>
+    <div>Smart Bin points</div>
+    <button id="again">Throw another item</button>
+    <div class="stat"><span id="statBin"></span><span id="statCount"></span></div>
+  </section>
+
+  <section id="s0" hidden>
+    <h2>Sign in to earn points</h2>
+    <p class="sub">We email you a one-tap sign-in link. No password needed.</p>
+    <input type="email" id="email" placeholder="you@example.com" aria-label="Email address" autocomplete="email">
+    <button id="sendLink">Email me a sign-in link</button>
+    <button class="alt" id="google">Continue with Google</button>
+    <div class="msg" id="m0" hidden></div>
+  </section>
+
+  <section id="s4" hidden>
+    <h2>Leaderboard</h2><p class="sub">Top recyclers by points earned.</p>
+    <ol class="lb" id="lb"></ol>
+    <input type="text" id="nick" maxlength="20" aria-label="Your nickname" placeholder="Your nickname">
+    <button class="alt" id="saveNick">Save nickname</button>
+    <div class="msg" id="m4" hidden></div>
+    <div class="sub" id="acct" style="margin:14px 0 0"></div>
+    <button class="alt" id="signOut" hidden>Sign out</button>
+  </section>
+
+  <section id="s5" hidden>
+    <h2>Rewards</h2><p class="sub">Collect points and swap them for treats.</p>
+    <div class="reward"><div><strong>Garden Yoghurt</strong><div class="sub" style="margin:0">1 cup · 2,450 points</div></div><span class="badge" id="bal">0 pts</span></div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="sub" id="barTxt" style="margin:0"></div>
+    <button id="redeem" disabled>Redeem Garden Yoghurt</button>
+    <div class="msg" id="m5" hidden></div>
+    <ul class="checks" id="codes"></ul>
+  </section>
+ </div>
+ <p class="sub" style="text-align:center;margin-top:16px">Photos are checked on your phone and are not uploaded.</p>
+</main>
+<canvas id="cv" hidden></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="backend.js"></script>
+<script>
+const $=id=>document.getElementById(id), cv=$('cv'), ctx=cv.getContext('2d',{willReadFrequently:true});
+const LITTER=['bottle','cup','wine glass','bowl','banana','apple','orange','sandwich','broccoli','carrot','hot dog','pizza','donut','cake','fork','knife','spoon','book','cell phone','handbag','backpack','umbrella','toothbrush','scissors','vase'];
+let stream=null,raf=0,binId=null,photos=[],model=null,modelState='idle',detector=null;
+try{detector=('BarcodeDetector' in window)?new BarcodeDetector({formats:['qr_code']}):null}catch(e){}
+
+/* ---------- helpers ---------- */
+const store={get(){try{return JSON.parse(localStorage.getItem('smartbin')||'{"points":0,"count":0}')}catch(e){return{points:0,count:0}}},
+  set(v){try{localStorage.setItem('smartbin',JSON.stringify(v))}catch(e){}}};
+function show(id){['s0','s1','s2','s3','s4','s5'].forEach(s=>$(s).hidden=s!==id);
+  const n=['s1','s2','s3'].indexOf(id);$('steps').hidden=n<0;[...$('steps').children].forEach((d,i)=>d.className=i<n?'ok':i===n?'on':'');
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('cur',b.dataset.go===(n>=0?'s1':id)))}
+function msg(id,t,type){const m=$(id);m.hidden=!t;m.textContent=t||'';m.className='msg '+(type||'')}
+function parseBin(t){ // accepts "SMARTBIN:SB-001", "SB-001", or a URL containing ?bin=SB-001
+  t=(t||'').trim(); let m=t.match(/[?&]bin=([A-Za-z0-9_-]+)/i)||t.match(/^SMARTBIN[:\- ]+([A-Za-z0-9_-]+)$/i)||t.match(/^(SB-[A-Za-z0-9_-]+)$/i);
+  return m?m[1].toUpperCase():null}
+async function cam(video){
+  stopCam();
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
+    video.srcObject=stream;await video.play();return true}
+  catch(e){return e}
+}
+function stopCam(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+function grab(video){cv.width=video.videoWidth;cv.height=video.videoHeight;ctx.drawImage(video,0,0);return cv}
+async function readQR(canvas){
+  if(detector){try{const r=await detector.detect(canvas);if(r.length)return r[0].rawValue}catch(e){}}
+  if(window.jsQR){const d=ctx.getImageData(0,0,canvas.width,canvas.height);const r=jsQR(d.data,d.width,d.height,{inversionAttempts:'attemptBoth'});if(r)return r.data}
+  return null}
+
+/* ---------- step 1: scan ---------- */
+function accept(id){binId=id;stopCam();msg('m1','');startProof()}
+$('startScan').onclick=async()=>{
+  msg('m1','Starting camera…');
+  const r=await cam($('v1'));
+  if(r!==true){msg('m1','Camera blocked. Allow camera access (the page must be opened over HTTPS), or type the bin code instead.','bad');return}
+  $('ph1').hidden=true;$('fr1').classList.remove('hide');msg('m1','Looking for a Smart Bin QR code…');
+  const loop=async()=>{
+    const v=$('v1');
+    if(v.readyState>=2){const t=await readQR(grab(v));
+      if(t){const id=parseBin(t);if(id){accept(id);return}msg('m1','That QR code is not a Smart Bin. Try the code on the bin.','bad')}}
+    raf=requestAnimationFrame(loop)};
+  loop()};
+$('manualBtn').onclick=()=>{const id=parseBin($('manual').value);id?accept(id):msg('m1','Enter a code like SB-001.','bad')};
+
+/* ---------- step 2: proof ---------- */
+const PROMPTS=[['Photo 1: litter in your hand','Hold the item up so the camera can see it, then take the photo.'],
+ ['Photo 2: litter inside the bin','Drop the item in, then photograph the inside of the bin with the QR code on the bin in view.']];
+async function loadModel(){
+  if(model||modelState==='loading')return;modelState='loading';
+  try{model=await cocoSsd.load({base:'lite_mobilenet_v2'});modelState='ready'}catch(e){modelState='failed'}}
+async function startProof(){
+  if(needLogin()){show('s0');return}
+  photos=[];show('s2');$('binTag').textContent='Bin '+binId+' confirmed';
+  ['thumbs','checks','verify','retake'].forEach(i=>$(i).hidden=true);$('thumbs').innerHTML='';msg('m2','');
+  nextPrompt();$('snap').hidden=false;$('snap').disabled=true;$('ph2').hidden=false;
+  loadModel();
+  const r=await cam($('v2'));
+  if(r!==true){$('ph2').textContent='Camera unavailable. Allow camera access and reload.';return}
+  $('ph2').hidden=true;$('snap').disabled=false}
+function nextPrompt(){const p=PROMPTS[Math.min(photos.length,1)];$('pTitle').textContent=p[0];$('pSub').textContent=p[1]}
+$('snap').onclick=()=>{
+  const c=grab($('v2'));photos.push({url:c.toDataURL('image/jpeg',.8),canvas:(()=>{const k=document.createElement('canvas');k.width=c.width;k.height=c.height;k.getContext('2d').drawImage(c,0,0);return k})()});
+  const th=$('thumbs');th.hidden=false;th.innerHTML=photos.map(p=>`<img src="${p.url}" alt="Your photo">`).join('');
+  if(photos.length<2){nextPrompt()}else{stopCam();$('snap').hidden=true;$('pTitle').textContent='Check your photos';$('pSub').textContent='Submit them for the litter and bin check, or start over.';$('verify').hidden=false;$('retake').hidden=false;$('v2').parentElement.hidden=true}};
+$('retake').onclick=()=>{$('v2').parentElement.hidden=false;startProof()};
+
+$('verify').onclick=async()=>{
+  $('verify').disabled=true;msg('m2','Checking your photos…');
+  await loadModel();while(modelState==='loading')await new Promise(r=>setTimeout(r,200));
+  // check A: bin QR visible in photo 2 and matches the bin scanned
+  let qrOK=false;{const c=photos[1].canvas;cv.width=c.width;cv.height=c.height;ctx.drawImage(c,0,0);const t=await readQR(cv);qrOK=parseBin(t||'')===binId}
+  // check B: litter-like object seen in either photo
+  let litterOK=false,found='';
+  if(model){for(const p of photos){const preds=await model.detect(p.canvas);const hit=preds.find(o=>o.score>.35&&LITTER.includes(o.class));if(hit){litterOK=true;found=hit.class;break}}}
+  const manualReview=!model;
+  const rows=[[qrOK,'Bin QR code visible in photo 2'],[manualReview?null:litterOK,manualReview?'Litter check unavailable (offline), saved for review':'Litter detected'+(found?' ('+found+')':'')]];
+  $('checks').hidden=false;$('checks').innerHTML=rows.map(r=>`<li class="${r[0]===true?'pass':r[0]===false?'fail':''}"><span class="dot">${r[0]===true?'✓':r[0]===false?'✕':'!'}</span>${r[1]}</li>`).join('');
+  $('verify').disabled=false;
+  if(qrOK&&(litterOK||manualReview)){
+    msg('m2','Uploading your proof…');$('verify').disabled=true;
+    const r=await SB.submit(binId,photos.map(p=>p.url),litterOK,manualReview);
+    $('verify').disabled=false;
+    if(r.error){msg('m2',r.error,'bad');return}
+    $('pts').textContent='+'+r.awarded;$('doneSub').textContent=manualReview?'Saved for review. Points are confirmed once checked.':'Your litter is verified.';
+    $('statBin').textContent='Bin '+binId;$('statCount').textContent=r.balance.toLocaleString()+' points to spend';
+    msg('m2','');show('s3');
+  }else{
+    msg('m2',!qrOK?'We could not see this bin\'s QR code in photo 2. Retake with the QR code in view.':'We could not spot litter. Hold the item closer and in good light, then retake.','bad');
+  }};
+
+$('again').onclick=()=>startProof();
+
+/* ---------- tabs, leaderboard, rewards ---------- */
+let pendingTab='s1';
+function needLogin(){return SB.live&&!SB.user()}
+function gate(g){if((g==='s1'||g==='s5')&&needLogin()){pendingTab=g;show('s0');return true}return false}
+const COST=2450,MINRED=2000,esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function showLB(){
+  await SB.refresh();$('nick').value=SB.name();$('acct').textContent=SB.user()?'Signed in as '+SB.user().email:'';$('signOut').hidden=!SB.user();msg('m4',SB.live?'':'Demo mode: the backend is not connected yet, so only your own points show.');
+  const rows=await SB.leaderboard();
+  $('lb').innerHTML=rows.length?rows.map((r,i)=>`<li${r.me?' class="me"':''}><b>${i+1}</b><span>${esc(r.nickname)}</span><em>${Number(r.lifetime).toLocaleString()}</em></li>`).join(''):'<li>No one yet. Be the first!</li>'}
+async function showRewards(){
+  const b=await SB.balance();$('bal').textContent=b.toLocaleString()+' pts';$('barFill').style.width=Math.min(100,b/COST*100)+'%';
+  $('barTxt').textContent=b>=COST?'You can redeem now!':b<MINRED?`Rewards unlock at 2,000 points. ${(COST-b).toLocaleString()} to go for Garden Yoghurt.`:`${(COST-b).toLocaleString()} points to go for Garden Yoghurt.`;
+  $('redeem').disabled=b<COST;msg('m5',SB.live?'':'Demo mode: connect the backend to redeem rewards.');
+  const c=await SB.codes();$('codes').innerHTML=c.map(x=>`<li class="${x.status==='redeemed'?'pass':''}"><span class="dot">${x.status==='redeemed'?'✓':'!'}</span><span><b>${esc(x.code)}</b> · ${x.status==='redeemed'?'Collected':'Show this at the counter'}</span></li>`).join('')}
+$('saveNick').onclick=async()=>{await SB.setName($('nick').value);await showLB();msg('m4','Nickname saved.','good')};
+$('redeem').onclick=async()=>{$('redeem').disabled=true;const r=await SB.redeem();
+  r.error?msg('m5',r.error,'bad'):msg('m5','Your code is '+r.code+'. Show it at the counter to collect your Garden Yoghurt.','good');showRewards()};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{stopCam();const g=b.dataset.go;
+  if(g==='s1'){binId=null;msg('m1','');$('ph1').hidden=false;$('fr1').classList.add('hide')}
+  if(gate(g))return;show(g);if(g==='s4')showLB();if(g==='s5')showRewards()});
+$('sendLink').onclick=async()=>{const e=$('email').value.trim();if(!/^\S+@\S+\.\S+$/.test(e)){msg('m0','Enter a valid email address.','bad');return}
+  $('sendLink').disabled=true;const r=await SB.signIn(e);$('sendLink').disabled=false;
+  r.error?msg('m0',r.error,'bad'):msg('m0','Check your inbox for '+e+'. Open the link on this phone to sign in.','good')};
+$('google').onclick=async()=>{const r=await SB.signInGoogle();if(r.error)msg('m0',r.error,'bad')};
+$('signOut').onclick=async()=>{await SB.signOut();binId=null;show('s0')};
+
+/* ---------- open straight from the bin's QR link: smart-bin.html?bin=SB-001 ---------- */
+(async()=>{
+  await SB.init();
+  const fromLink=parseBin(location.search?location.href:'');
+  if(fromLink)accept(fromLink);else if(needLogin())show('s0');
+})();
+</script>
+</body>
+</html>
